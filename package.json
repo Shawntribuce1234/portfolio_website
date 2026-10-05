@@ -1,0 +1,1 @@
+{"name":"shawn-tribuce-portfolio","version":"1.0.0","private":true,"description":"Shawn Tribuce's portfolio — vanilla HTML, CSS and JavaScript","scripts":{"start":"node server.mjs","check":"node --check app.js && node --check theme-init.js && node --check server.mjs"},"engines":{"node":">=18"}}

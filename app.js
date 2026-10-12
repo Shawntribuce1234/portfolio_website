@@ -1,26 +1,58 @@
 (() => {
   'use strict';
   const root = document.documentElement;
-  const button = document.getElementById('theme-toggle');
-  function applyTheme(theme, save = true) {
-    root.dataset.theme = theme;
-    button.setAttribute('aria-pressed', String(theme === 'light'));
-    const label = `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`;
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    button.querySelector('.theme-icon').textContent = theme === 'dark' ? '☀' : '☾';
-    if (save) { try { localStorage.setItem('shawn-theme', theme); } catch {} }
-    window.dispatchEvent(new Event('themechange'));
-  }
-  applyTheme(root.dataset.theme, false);
-  button.addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
-  window.addEventListener('storage', event => {
-    if (event.key === 'shawn-theme') applyTheme(event.newValue === 'light' ? 'light' : 'dark', false);
-  });
+  root.dataset.theme = 'dark';
   const nav = document.querySelector('.nav');
   const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+
+  const face = document.querySelector('.contact-face');
+  if (face) {
+    const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    window.addEventListener('pointermove', event => {
+      if (motion.matches) return;
+      const bounds = face.getBoundingClientRect();
+      const dx = event.clientX - (bounds.left + bounds.width / 2);
+      const dy = event.clientY - (bounds.top + bounds.height / 2);
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      face.style.setProperty('--eye-x', `${dx / distance * Math.min(4, distance / 60)}px`);
+      face.style.setProperty('--eye-y', `${dy / distance * Math.min(3, distance / 60)}px`);
+    }, { passive: true });
+    const resetEyes = () => {
+      face.style.setProperty('--eye-x', '0px');
+      face.style.setProperty('--eye-y', '0px');
+    };
+    document.documentElement.addEventListener('pointerleave', resetEyes);
+    window.addEventListener('blur', resetEyes);
+    motion.addEventListener('change', resetEyes);
+  }
+
+  const tabs = [...document.querySelectorAll('.coursework-tabs [role="tab"]')];
+  function selectTab(selected) {
+    tabs.forEach(tab => {
+      const active = tab === selected;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      const panel = document.getElementById(tab.getAttribute('aria-controls'));
+      panel.hidden = !active;
+      if (!active) {
+        panel.querySelectorAll('video').forEach(video => video.pause());
+        panel.querySelectorAll('iframe').forEach(frame => { frame.src = frame.src; });
+      }
+    });
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+      if (event.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
+      if (event.key === 'Home') next = tabs[0];
+      if (event.key === 'End') next = tabs[tabs.length - 1];
+      if (next) { event.preventDefault(); selectTab(next); next.focus(); }
+    });
+  });
 
   const canvas = document.getElementById('particle-canvas');
   const ctx = canvas.getContext('2d');
